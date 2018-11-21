@@ -1,0 +1,165 @@
+<section class="jumbotron text-center">
+  <div class="container">
+    <h1 class="jumbotron-heading">Business Card Scanner</h1>
+    <p class="lead text-muted">
+      An awesome tool to help you keep track of your business cards. Now get out there and meet some people!
+    </p>
+  </div>
+</section>
+
+<div class="container">
+  <div class="row">
+    <div class="col-12 text-center">
+      <button (click)="toggleAdd()" class="btn btn-primary">Add new card</button>
+      <button (click)="toggleSearch()" class="btn btn-secondary">Search cards</button>
+    </div>
+    <br>
+  </div>
+</div>
+
+<!-- Search Cards -->
+<div class="container text-center">
+  <div id="search" *ngIf="searchContainer">
+    <div class="row">
+      <div class="col-md-4 col-md-offset-4">
+        <span>
+          <input class="form-control" type="text" placeholder="Email" id="searchEmail" #emailAddr/>
+        </span>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12 text-center">
+        <br>
+        <button (click)="searchCardsByEmail(emailAddr.value)" class=" btn btn-info">Search by email</button>
+      </div>
+      <br>
+    </div>
+    <br>
+    <div class="row">
+      <div class="col-md-4 col-md-offset-4">
+        <div class="input-group">
+          <input class="form-control" type="text" placeholder="First name" id="searchFirstName" #searchFirstName/>
+          <input class="form-control" type="text" placeholder="Last name" id="searchLastName" #searchLastName/>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12 text-center">
+        <br>
+        <button (click)="searchCardsByName(searchFirstName.value, searchLastName.value)" class=" btn btn-info">Search by full name</button>
+      </div>
+      <br>
+    </div>
+    <div>
+      <br>
+      <button (click)="emailAddr.value=''; searchFirstName.value=''; searchLastName.value=''; clearSearch()" *ngIf=searched class=" btn btn-warning">Clear Search</button>
+    </div>
+  </div>
+</div>
+  <!-- Add New Card -->
+<div id="addNew" *ngIf="addContainer" class="text-center">
+  <div class="text-muted">
+    <i>Click the button below to activate your webcam and photograph a new card.</i>
+  </div>
+  <br>
+  <button (click)="activateWebcam()" *ngIf="!webcamActivated && (!photoTaken || photoSaved)" class="btn btn-success">Activate Webcam</button>
+  <br>
+  <button (click)="takePhoto()" *ngIf="webcamActivated" class="btn btn-success">Take Photo</button>
+  <button (click)="deactivateWebcam()" *ngIf="webcamActivated" class="btn btn-danger">Deactivate Webcam</button>
+  <br>
+  <button (click)="activateWebcam()" *ngIf="!webcamActivated && photoTaken && !photoDeleted && !photoSaved" class="btn btn-info">Re-take Photo</button>
+  <button (click)="removePhoto()" *ngIf="!webcamActivated && photoTaken && !photoDeleted && !photoSaved" class="btn btn-danger">Delete Photo</button>
+  <br>
+  <div *ngIf="webcamActivated">
+  <webcam [height]="360" [width]="480" [trigger]="triggerObservable" (imageCapture)="captureImage($event)"></webcam>
+</div>
+<!-- Show input fields before saving to database -->
+<div *ngIf="textDetectionDone && !photoSaved && !photoDeleted">
+    <br>
+    <div class="text-muted">
+      <i>Update any fields that need to be changed below, then save the card.</i>
+    </div>
+    <!-- Show image of photo before saving it -->
+  <div *ngIf="dataUrl && textDetectionDone && !photoSaved && !photoDeleted">
+    <img [height]="360" [width]="480" [src]="dataUrl">
+  </div>
+  <div class="container">
+    <div class="row">
+      <br>
+      <div class="col-md-4 col-md-offset-4 form-group">
+        <label for="firstName" >First name:</label>
+        <input type="text" class="form-control" id="firstName" required [(ngModel)]="this.cardToAdd.firstName">
+        <label for="lastName">Last name:</label>
+        <input type="text" class="form-control" id="lastName" required [(ngModel)]="this.cardToAdd.lastName">
+        <label for="phoneNumber">Phone:</label>
+        <input type="text" class="form-control" id="phoneNumber" required [(ngModel)]="this.cardToAdd.phoneNumber">
+        <label for="emailAddress">Email:</label>
+        <input type="text" class="form-control" id="emailAddress" required [(ngModel)]="this.cardToAdd.email">
+        <label for="additionalText">Additional text:</label>
+        <textarea class="form-control" rows="5" id="additionalText" [(ngModel)]="this.cardToAdd.additionalText"></textarea>
+      </div>
+    </div>
+  </div>
+  <div>
+    <button (click)="addCardToDatabase()" class="btn btn-success">Save Card</button>
+  </div>
+  <br>
+</div>
+</div>
+<div [ngSwitch]="photoSaved">
+    <div *ngSwitchCase="true">
+      <br>
+      <div class="alert alert-success">       
+        <!-- <span class="close" data-dismiss="alert">&times;</span> -->
+        Success! Card for {{ this.cardToAdd.email }} was saved. Scroll down to see it listed your cards list.
+      </div>
+    </div>
+  </div>
+
+<!-- Show cards on file -->
+<section class="jumbotron">
+
+<div class="container">
+  <br>
+  <div>
+    <h1 class="text-center">Saved cards</h1>
+    <br>
+  </div>
+  <div *ngIf="(!savedCards || savedCards.length === 0) && !nullSearch">
+    <div class="text-muted text-center">
+      It looks like you don't have any cards saved yet. Click "Add new card" to start your collection!
+    </div>
+  </div>
+  <div *ngIf="savedCards && savedCards.length > 0 && !nullSearch">
+    <div class="row">
+        <div class="col-sm-6 col-md-4" *ngFor="let card of savedCards">
+            <div class="thumbnail">
+                <div class="content">
+                    <img [src]="card.imageUri" [height]="360" [width]="480" class="img-responsive">
+                    <div class="caption">
+                        <div>
+                          <strong>Name: </strong>{{ card.firstName }} {{ card.lastName }}
+                        </div>
+                        <div>
+                          <strong>Phone: </strong>{{ card.phoneNumber }}
+                        </div>
+                        <div>
+                          <strong>Email: </strong>{{ card.email }}
+                        </div>
+                        <div>
+                          <strong>Additional Text: </strong>{{ card.additionalText }}
+                        </div>
+                    </div>
+                </div>
+              </div>
+            </div> 
+        </div>
+      </div> 
+      <div *ngIf="nullSearch">
+        <h5 class="text-muted text-center">
+          <i> No search results found. <br>
+            Note: search is case-sensitive, and search by name requires both first and last name. </i>
+        </h5>
+    </div>
+</div>
+</section>
